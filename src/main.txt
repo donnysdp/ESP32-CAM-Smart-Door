@@ -11,8 +11,8 @@
 #include <addons/TokenHelper.h>
 
 //Replace with your network credentials
-const char* ssid = "FMC IndiHome ZTE - B";
-const char* password = "wireless";
+const char* ssid = "CEMARA-AP";
+const char* password = "RTYUIOP999";
 
 // //Replace with your network credentials
 // const char* ssid = "FMC IndiHome ZTE - A";

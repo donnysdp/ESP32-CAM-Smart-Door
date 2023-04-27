@@ -148,7 +148,7 @@ void initCamera(){
 
   if (psramFound()) {
     config.frame_size = FRAMESIZE_UXGA;
-    config.jpeg_quality = 10;
+    config.jpeg_quality = 12;
     config.fb_count = 2;
   } else {
     config.frame_size = FRAMESIZE_SVGA;
@@ -166,9 +166,9 @@ void initCamera(){
   //set the camera parameters
   sensor_t * s = esp_camera_sensor_get();
   s->set_reg(s, 273, 63, 5);
-  //s->set_contrast(s, 2);    //min=-2, max=2
-  //s->set_brightness(s, 2);  //min=-2, max=2
-  //s->set_saturation(s, 2);  //min=-2, max=2
+  s->set_contrast(s, 2);    //min=-2, max=2
+  s->set_brightness(s, 2);  //min=-2, max=2
+  s->set_saturation(s, 2);  //min=-2, max=2
   delay(100);               //wait a little for settings to take effect
 }
 
