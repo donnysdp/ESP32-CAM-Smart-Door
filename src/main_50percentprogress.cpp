@@ -44,6 +44,7 @@ const char* password = "RTYUIOP999";
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
 
+//boolean variable for taking the picture for once
 boolean takeNewPhoto = true;
 
 //Define Firebase Data objects
@@ -173,16 +174,19 @@ void initCamera(){
 }
 
 
-void setup() {
+void setup(){
   // Serial port for debugging purposes
   Serial.begin(115200);
+  //init the wifi
   initWiFi();
+  //init the spiffs
   initSPIFFS();
   // Turn-off the 'brownout detector'
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
+  //init the camera
   initCamera();
 
-  //Firebase
+  //Firebase work code
   // Assign the api key
   configF.api_key = API_KEY;
   //Assign the user sign in credentials
@@ -190,27 +194,40 @@ void setup() {
   auth.user.password = USER_PASSWORD;
   //Assign the callback function for the long running token generation task
   configF.token_status_callback = tokenStatusCallback; //see addons/TokenHelper.h
-
+  //begin thefirebase connection
   Firebase.begin(&configF, &auth);
+  //reconnect wifi if lost connection set to be true
   Firebase.reconnectWiFi(true);
 }
 
-void loop() {
-  if (takeNewPhoto) {
+//main program on void loop
+void loop(){
+  //first, make sure the ESP32-cam taking the picture once
+  if(takeNewPhoto){ //if variabel takenewphoto is true, then....
+    //capture photo & save to spiffs
     capturePhotoSaveSpiffs();
+    //set takenewphoto variabel to be false, so esp32-cam wont take the picture more than once
     takeNewPhoto = false;
   }
+  //delay for avoid the loop crash
   delay(1);
-  if (Firebase.ready() && !taskCompleted){
+  //if firebase ready (connected) and taskcompleted is false (sign that the task of uploading picture to firebase isnt exist)
+  if(Firebase.ready() && !taskCompleted){
+    //taskcompleted set to be true, so that tells the esp32-cam that the uploading task are completed
     taskCompleted = true;
+    //send serial message to serial monitor
     Serial.print("Uploading picture... ");
 
     //MIME type should be valid to avoid the download problem.
     //The file systems for flash and SD/SDMMC can be changed in FirebaseFS.h.
-    if (Firebase.Storage.upload(&fbdo, STORAGE_BUCKET_ID /* Firebase Storage bucket id */, FILE_PHOTO /* path to local file */, mem_storage_type_flash /* memory storage type, mem_storage_type_flash and mem_storage_type_sd */, FILE_PHOTO /* path of remote file stored in the bucket */, "image/jpeg" /* mime type */)){
+
+    //firebase storage upload program (not firebase rtdb upload, but storage upload)
+    if(Firebase.Storage.upload(&fbdo, STORAGE_BUCKET_ID /* Firebase Storage bucket id */, FILE_PHOTO /* path to local file */, mem_storage_type_flash /* memory storage type, mem_storage_type_flash and mem_storage_type_sd */, FILE_PHOTO /* path of remote file stored in the bucket */, "image/jpeg" /* mime type */)){
+      //send serial message to serial monitor about the link of the photo
       Serial.printf("\nDownload URL: %s\n", fbdo.downloadURL().c_str());
     }
     else{
+      //if there's a problem, then the error reason came out to serial monitor
       Serial.println(fbdo.errorReason());
     }
   }
