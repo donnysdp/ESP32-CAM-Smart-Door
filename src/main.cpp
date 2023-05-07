@@ -81,6 +81,7 @@ void initLCD(void){
   I2CLCD.begin(I2C_SDA, I2C_SCL, 100000);
   lcd.init();              
   lcd.backlight();
+  lcd.clear();
 }
 
 // Check if photo capture was successful
@@ -96,28 +97,39 @@ void capturePhotoSaveSpiffs(void){
   bool ok = 0; // Boolean indicating if the picture has been taken correctly
   do{
     // Take a photo with the camera
-    Serial.println("Taking a photo...");
+    lcd.backlight();
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print(" Taking a Photo ");
+    Serial.println("Taking a Photo...");
     pinMode(GPIO_NUM_4, OUTPUT);
     digitalWrite(GPIO_NUM_4, HIGH);
     rtc_gpio_hold_dis(GPIO_NUM_4);
     fb = esp_camera_fb_get();
     if(!fb){
       lcd.backlight();
+      lcd.clear();
       lcd.setCursor(0,0);
-      lcd.print("Camera capture failed");
+      lcd.print(" Camera Capture ");
+      lcd.setCursor(0,1);
+      lcd.print("     Failed     ");
       Serial.println("Camera capture failed");
       return;
     }
-    //digitalWrite(GPIO_NUM_4, LOW);
-    //rtc_gpio_hold_en(GPIO_NUM_4);
     // Photo file name
     Serial.printf("Picture file name: %s\n", FILE_PHOTO);
     File file = SPIFFS.open(FILE_PHOTO, FILE_WRITE);
     // Insert the data in the photo file
-    if (!file) {
+    if(!file){
+      lcd.backlight();
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print(" Failed to Open ");
+      lcd.setCursor(0,1);
+      lcd.print("     SPIFFS     ");
       Serial.println("Failed to open file in writing mode");
     }
-    else {
+    else{
       file.write(fb->buf, fb->len); // payload (image), payload length
       Serial.print("The picture has been saved in ");
       Serial.print(FILE_PHOTO);
@@ -140,8 +152,11 @@ void initWiFi(){
   while (WiFi.status() != WL_CONNECTED){
     delay(1000);
     lcd.backlight();
+    lcd.clear();
     lcd.setCursor(0,0);
-    lcd.print("Connecting to WiFi...");
+    lcd.print(" Connecting to: ");
+    lcd.setCursor(0,1);
+    lcd.print("     Wifi..     ");
     Serial.println("Connecting to WiFi...");
   }
 }
@@ -149,16 +164,23 @@ void initWiFi(){
 void initSPIFFS(){
   if(!SPIFFS.begin(true)){
     lcd.backlight();
+    lcd.clear();
     lcd.setCursor(0,0);
-    lcd.print("SPIFFS failed to mount");
-    Serial.println("SPIFFS failed to mount");
+    lcd.print(" SPIFFS Failed: ");
+    lcd.setCursor(0,1);
+    lcd.print("Failed to Mount!");
+    Serial.println("SPIFFS failed to mount");\
+    delay(3000);
     ESP.restart();
   }
   else{
     delay(500);
     lcd.backlight();
+    lcd.clear();
     lcd.setCursor(0,0);
-    lcd.print("SPIFFS mounted successfully");
+    lcd.print(" SPIFFS Success ");
+    lcd.setCursor(0,1);
+    lcd.print(" Mount Success! ");
     Serial.println("SPIFFS mounted successfully");
   }
 }
@@ -201,8 +223,11 @@ void initCamera(){
   esp_err_t err = esp_camera_init(&config);
   if(err != ESP_OK){
     lcd.backlight();
+    lcd.clear();
     lcd.setCursor(0,0);
-    lcd.print("Camera init failed");
+    lcd.print(" Camera Failed: ");
+    lcd.setCursor(0,1);
+    lcd.print(" Failed to Init ");
     Serial.printf("Camera init failed with error 0x%x", err);
     ESP.restart();
   } 
@@ -251,200 +276,188 @@ void setup() {
 }
 
 void loop(){
-  // int distanceSensorState = digitalRead(distanceSensor);
-
   if(takeNewPhoto){
-    lcd.backlight();
-    lcd.setCursor(0,0);
-    lcd.print("Taking a photo...");
     capturePhotoSaveSpiffs();
     takeNewPhoto = false;
   }
   else{
     lcd.backlight();
+    lcd.clear();
     lcd.setCursor(0,0);
-    lcd.print("Error: SPIFFS failure");
-    Serial.println("Error: failed to capture photo and save to SPIFFS --> ");
-    Serial.println(fbdo.errorReason());
+    lcd.print("      Error     ");
+    lcd.setCursor(0,1);
+    lcd.print("Take Photo Fail!");
+    Serial.println("Error: failed to capture photo and save to SPIFFS --> " + fbdo.errorReason() + " --> Restarting ESP32-CAM");
     ESP.restart();
   }
+
   delay(1);
-  
   if(Firebase.ready() && signupOK && !taskCompleted){
     taskCompleted = true;
     lcd.backlight();
+    lcd.clear();
     lcd.setCursor(0,0);
-    lcd.print("Uploading picture...");
+    lcd.print("  Upload Photo  ");
+    lcd.setCursor(0,1);
+    lcd.print("  To GFirebase  ");
     Serial.println("Uploading picture...");
     if(Firebase.Storage.upload(&fbdo, STORAGE_BUCKET_ID /* Firebase Storage bucket id */, FILE_PHOTO /* path to local file */, mem_storage_type_flash /* memory storage type, mem_storage_type_flash and mem_storage_type_sd */, FILE_PHOTO /* path of remote file stored in the bucket */, "image/jpeg" /* mime type */)){
+      lcd.backlight();
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print(" Upload Success ");
+      lcd.setCursor(0,1);
+      lcd.print("Check GFirebase!");
       Serial.printf("\nDownload URL: %s\n", fbdo.downloadURL().c_str());
-      delay(2000); /////harus dicoba timingnya dengan face detection
-      // do{
-      //   if(Firebase.RTDB.getInt(&fbdo, "/camera")){ //getting info from firebase of camera face recognition are true
-      //     if(fbdo.dataType() == "int"){
-      //       intCamera = fbdo.intData();
-      //       Serial.println("intCamera value = " + String(intCamera) + " --> Success");
-      //       delay(200);
-      //     }
-      //     else{
-      //       Serial.println("Error: failed to get /camera value --> ");
-      //       Serial.println(fbdo.errorReason());
-      //       delay(200);
-      //     }
-      //   }
-      //   else{
-      //     Serial.println("Error: RTDB.getInt /camera failed --> ");
-      //     Serial.println(fbdo.errorReason());
-      //     delay(200);
-      //   }
-
-      //   //////////////////////////////////////////////////////////////////////////////////////////////////////////
-      //   if(Firebase.RTDB.getInt(&fbdo, "/appbutton")){ //getting info from firebase of app button are true
-      //     if(fbdo.dataType() == "int"){
-      //       intAppButton = fbdo.intData();
-      //       Serial.println("intAppButton value = " + String(intAppButton) + " --> Success");
-      //       Serial.println("");
-      //       delay(200);          
-      //       }
-      //     else{
-      //       Serial.println("Error: failed to get /appbutton value --> ");
-      //       Serial.println(fbdo.errorReason());
-      //       delay(200);          
-      //       }
-      //   }
-      //   else{
-      //     Serial.println("Error: RTDB.getInt /appbutton failed --> ");
-      //     Serial.println(fbdo.errorReason());
-      //     delay(200);
-      //   }
-
-        taskCompleted = false;
-        takeNewPhoto = false;
-        bool systemIdle = true;
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////
-        do{
-          if(systemIdle){
-            if(intCamera == 2){  //decision making if camera failed to recognize face
-              if(intCamera == 1){
-                digitalWrite(relay, LOW); //current flowing
-                lcd.backlight();
-                lcd.setCursor(0,0);
-                lcd.print("Retake success");
-                Serial.println("The intCamera value = " + String(intCamera) + " --> Retake Result: Face Approved! (Door UNLOCKED)");
-                delay(5000);
-                Firebase.RTDB.setInt(&fbdo, "/camera", intCamera = 0);
-                digitalWrite(relay, HIGH);
-                takeNewPhoto = false;
-              }
-              digitalWrite(relay, HIGH);
-              lcd.backlight();
-              lcd.setCursor(0,0);
-              lcd.print("FR Failed");
-              Serial.println("Failed to recognize face, please stand once again for retake the picture");
-              Firebase.RTDB.getInt(&fbdo, "/camera");
-              intCamera = fbdo.intData();
-              Firebase.RTDB.getInt(&fbdo, "/appbutton");
-              intAppButton = fbdo.intData();
-              takeNewPhoto = true;
-              systemIdle = false;
-              program = true;
-              taskCompleted = false;
-              // delay(2000);
-            }
-            else if(intCamera == 0 && intAppButton == 0){  //decision making if both value = 0 (if there's no feedback)
-              digitalWrite(relay, HIGH); //current not flowing
-              lcd.backlight();
-              lcd.setCursor(0,0);
-              lcd.print("No interaction (Locked)");
-              Serial.println("No interaction (Door LOCKED)");
-              Firebase.RTDB.getInt(&fbdo, "/camera");
-              intCamera = fbdo.intData();
-              Firebase.RTDB.getInt(&fbdo, "/appbutton");
-              intAppButton = fbdo.intData();
-              takeNewPhoto = false;
-              delay(1);
-            }
-            else if(intCamera == 1 && intAppButton == 0){ //decision making if intCamera value = 1
+      delay(2000);
+      taskCompleted = false;
+      takeNewPhoto = false;
+      bool systemIdle = true;
+      //////////////////////////////////////////////////////////////////////////////////////////////////////////
+      do{
+        if(systemIdle){
+          if(intCamera == 2){  //decision making if camera failed to recognize face
+            if(intCamera == 1){
               digitalWrite(relay, LOW); //current flowing
               lcd.backlight();
+              lcd.clear();
               lcd.setCursor(0,0);
-              lcd.print("Unlocked: FR");
-              Serial.print("The intCamera value = ");
-              Serial.print(intCamera);
-              Serial.println(" --> Door UNLOCKED via Face Recognition");
-              Firebase.RTDB.getInt(&fbdo, "/camera");
-              intCamera = fbdo.intData();
-              Firebase.RTDB.getInt(&fbdo, "/appbutton");
-              intAppButton = fbdo.intData();
-              Firebase.RTDB.setInt(&fbdo, "/camera", intCamera=0);
+              lcd.print("Door UNLOCKED by");
+              lcd.setCursor(0,1);
+              lcd.print("Face Recognition");
+              Serial.println("The intCamera value = " + String(intCamera) + " --> Retake Result: Face Approved! (Door UNLOCKED)");
               delay(5000);
+              Firebase.RTDB.setInt(&fbdo, "/camera", intCamera = 0);
               digitalWrite(relay, HIGH);
               takeNewPhoto = false;
             }
-            else if(intCamera == 0 && intAppButton == 1){ //decision making if intAppButton value = 1
-              digitalWrite(relay, LOW);
-              lcd.backlight();
-              lcd.setCursor(0,0);
-              lcd.print("Unlocked: AB");
-              Serial.print("The intAppButton value = ");
-              Serial.print(intAppButton);
-              Serial.println(" --> Door UNLOCKED via App Button");
-              Firebase.RTDB.getInt(&fbdo, "/camera");
-              intCamera = fbdo.intData();
-              Firebase.RTDB.getInt(&fbdo, "/appbutton");
-              intAppButton = fbdo.intData();
-              Firebase.RTDB.setInt(&fbdo, "/appbutton", intAppButton=0);
-              delay(5000);
-              digitalWrite(relay, HIGH);
-              takeNewPhoto = false;
-            }
-            else if(intCamera == 1 && intAppButton == 1){ //decision making if both value = 1
-              digitalWrite(relay, LOW);
-              lcd.backlight();
-              lcd.setCursor(0,0);
-              lcd.print("Unlocked: Both");
-              Serial.println(" --> Door UNLOCKED via both Camera and App Button");
-              Firebase.RTDB.getInt(&fbdo, "/camera");
-              intCamera = fbdo.intData();
-              Firebase.RTDB.getInt(&fbdo, "/appbutton");
-              intAppButton = fbdo.intData();
-              Firebase.RTDB.setInt(&fbdo, "/camera", intCamera=0);
-              Firebase.RTDB.setInt(&fbdo, "/appbutton", intAppButton=0);
-              delay(5000);
-              digitalWrite(relay, HIGH);
-              takeNewPhoto = false;
-            }
-            else{
-              lcd.backlight();
-              lcd.setCursor(0,0);
-              lcd.print("Error: value failed");
-              Serial.println("Error: failed to get the value --> " + fbdo.errorReason() + " --> Restarting ESP32-CAM");
-              //Serial.println(fbdo.errorReason());
-              delay(1000);
-              ESP.restart();
-            }
+            digitalWrite(relay, HIGH);
+            lcd.backlight();
+            lcd.clear();
+            lcd.setCursor(0,0);
+            lcd.print("Face Recognition");
+            lcd.setCursor(0,1);
+            lcd.print("Failed, Retaking");
+            Serial.println("Failed to recognize face, please stand once again for retake the picture");
+            Firebase.RTDB.getInt(&fbdo, "/camera");
+            intCamera = fbdo.intData();
+            Firebase.RTDB.getInt(&fbdo, "/appbutton");
+            intAppButton = fbdo.intData();
+            takeNewPhoto = true;
+            systemIdle = false;
+            program = true;
+            taskCompleted = false;
           }
-        }while(systemIdle);
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////
-      // }while(!program);
+          else if(intCamera == 0 && intAppButton == 0){  //decision making if both value = 0 (if there's no feedback)
+            digitalWrite(relay, HIGH); //current not flowing
+            lcd.backlight();
+            lcd.clear();
+            lcd.setCursor(0,0);
+            lcd.print(" No Interaction ");
+            lcd.setCursor(0,1);
+            lcd.print("  Door: LOCKED  ");
+            Serial.println("No Interaction (Door LOCKED)");
+            Firebase.RTDB.getInt(&fbdo, "/camera");
+            intCamera = fbdo.intData();
+            Firebase.RTDB.getInt(&fbdo, "/appbutton");
+            intAppButton = fbdo.intData();
+            takeNewPhoto = false;
+            delay(1);
+          }
+          else if(intCamera == 1 && intAppButton == 0){ //decision making if intCamera value = 1
+            digitalWrite(relay, LOW); //current flowing
+            lcd.backlight();
+            lcd.clear();
+            lcd.setCursor(0,0);
+            lcd.print("Door UNLOCKED by");
+            lcd.setCursor(0,1);
+            lcd.print("Face Recognition");
+            Serial.print("The intCamera value = ");
+            Serial.print(intCamera);
+            Serial.println(" --> Door UNLOCKED via Face Recognition");
+            Firebase.RTDB.getInt(&fbdo, "/camera");
+            intCamera = fbdo.intData();
+            Firebase.RTDB.getInt(&fbdo, "/appbutton");
+            intAppButton = fbdo.intData();
+            Firebase.RTDB.setInt(&fbdo, "/camera", intCamera=0);
+            delay(5000);
+            digitalWrite(relay, HIGH);
+            takeNewPhoto = false;
+          }
+          else if(intCamera == 0 && intAppButton == 1){ //decision making if intAppButton value = 1
+            digitalWrite(relay, LOW);
+            lcd.backlight();
+            lcd.clear();
+            lcd.setCursor(0,0);
+            lcd.print("Door UNLOCKED by");
+            lcd.setCursor(0,1);
+            lcd.print("   App Button   ");
+            Serial.print("The intAppButton value = ");
+            Serial.print(intAppButton);
+            Serial.println(" --> Door UNLOCKED via App Button");
+            Firebase.RTDB.getInt(&fbdo, "/camera");
+            intCamera = fbdo.intData();
+            Firebase.RTDB.getInt(&fbdo, "/appbutton");
+            intAppButton = fbdo.intData();
+            Firebase.RTDB.setInt(&fbdo, "/appbutton", intAppButton=0);
+            delay(5000);
+            digitalWrite(relay, HIGH);
+            takeNewPhoto = false;
+          }
+          else if(intCamera == 1 && intAppButton == 1){ //decision making if both value = 1
+            digitalWrite(relay, LOW);
+            lcd.backlight();
+            lcd.clear();
+            lcd.setCursor(0,0);
+            lcd.print("Door UNLOCKED by");
+            lcd.setCursor(0,1);
+            lcd.print(" Both Functions ");
+            Serial.println(" --> Door UNLOCKED via both Camera and App Button");
+            Firebase.RTDB.getInt(&fbdo, "/camera");
+            intCamera = fbdo.intData();
+            Firebase.RTDB.getInt(&fbdo, "/appbutton");
+            intAppButton = fbdo.intData();
+            Firebase.RTDB.setInt(&fbdo, "/camera", intCamera=0);
+            Firebase.RTDB.setInt(&fbdo, "/appbutton", intAppButton=0);
+            delay(5000);
+            digitalWrite(relay, HIGH);
+            takeNewPhoto = false;
+          }
+          else{
+            lcd.backlight();
+            lcd.clear();
+            lcd.setCursor(0,0);
+            lcd.print("Function Errors:");
+            lcd.setCursor(0,1);
+            lcd.print("Main Program Err");
+            Serial.println("Error: failed to get the value --> " + fbdo.errorReason() + " --> Restarting ESP32-CAM");
+            delay(3000);
+            ESP.restart();
+          }
+        }
+      }while(systemIdle);
     }
     else{
       lcd.backlight();
+      lcd.clear();
       lcd.setCursor(0,0);
-      lcd.print("Error after do-while loop");
+      lcd.print("Function Errors:");
+      lcd.setCursor(0,1);
+      lcd.print(" Do-While Loops ");
       Serial.println("Error after do-while loop --> " + fbdo.errorReason() + " --> Restarting ESP32-CAM");
-      //Serial.println(fbdo.errorReason());
-      delay(1000);
+      delay(3000);
       ESP.restart();
     }
   }
   else{
     lcd.backlight();
+    lcd.clear();
     lcd.setCursor(0,0);
-    lcd.print("Error on firebase.ready");
+    lcd.print("Function Errors:");
+    lcd.setCursor(0,1);
+    lcd.print(" Firebase Error ");
     Serial.println("Error on firebase.ready --> " + fbdo.errorReason() + " --> Restarting ESP32-CAM");
-    //Serial.println(fbdo.errorReason());
-    delay(1000);
+    delay(3000);
     ESP.restart();
   }
 }
