@@ -101,6 +101,8 @@ void capturePhotoSaveSpiffs(void){
     lcd.clear();
     lcd.setCursor(0,0);
     lcd.print(" Taking a Photo ");
+    lcd.setCursor(0,1);
+    lcd.print("  Stands Still  ");
     Serial.println("Taking a Photo...");
     pinMode(GPIO_NUM_4, OUTPUT);
     digitalWrite(GPIO_NUM_4, HIGH);
