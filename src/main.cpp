@@ -12,17 +12,14 @@
 //Provide the token generation process info.
 #include <addons/TokenHelper.h>
 
+//relay module initialize
+#define relay 13
+
 //LCD I2C pin config
 #define I2C_SDA 14
 #define I2C_SCL 15
 TwoWire I2CLCD = TwoWire(0);
 LiquidCrystal_I2C lcd(0x27, 16, 2);
-
-//e18 Distance sensor initialize
-//#define distanceSensor 12
-
-//relay module initialize
-#define relay 13
 
 //Replace with your network credentials
 const char* ssid = "CEMARA-AP";
@@ -332,7 +329,7 @@ void loop(){
                 digitalWrite(relay, LOW); //current flowing
                 lcd.backlight();
                 lcd.setCursor(0,0);
-                lcd.print("intCamera value 1");
+                lcd.print("Retake success");
                 Serial.println("The intCamera value = " + String(intCamera) + " --> Retake Result: Face Approved! (Door UNLOCKED)");
                 delay(5000);
                 Firebase.RTDB.setInt(&fbdo, "/camera", intCamera = 0);
@@ -342,7 +339,7 @@ void loop(){
               digitalWrite(relay, HIGH);
               lcd.backlight();
               lcd.setCursor(0,0);
-              lcd.print("initCamera 1 FAILED");
+              lcd.print("FR Failed");
               Serial.println("Failed to recognize face, please stand once again for retake the picture");
               Firebase.RTDB.getInt(&fbdo, "/camera");
               intCamera = fbdo.intData();
@@ -365,13 +362,13 @@ void loop(){
               Firebase.RTDB.getInt(&fbdo, "/appbutton");
               intAppButton = fbdo.intData();
               takeNewPhoto = false;
-              delay(200);
+              delay(1);
             }
             else if(intCamera == 1 && intAppButton == 0){ //decision making if intCamera value = 1
               digitalWrite(relay, LOW); //current flowing
               lcd.backlight();
               lcd.setCursor(0,0);
-              lcd.print("Door Unlocked: FR");
+              lcd.print("Unlocked: FR");
               Serial.print("The intCamera value = ");
               Serial.print(intCamera);
               Serial.println(" --> Door UNLOCKED via Face Recognition");
@@ -388,7 +385,7 @@ void loop(){
               digitalWrite(relay, LOW);
               lcd.backlight();
               lcd.setCursor(0,0);
-              lcd.print("Door Unlocked: AB");
+              lcd.print("Unlocked: AB");
               Serial.print("The intAppButton value = ");
               Serial.print(intAppButton);
               Serial.println(" --> Door UNLOCKED via App Button");
@@ -405,7 +402,7 @@ void loop(){
               digitalWrite(relay, LOW);
               lcd.backlight();
               lcd.setCursor(0,0);
-              lcd.print("Door Unlocked: Both");
+              lcd.print("Unlocked: Both");
               Serial.println(" --> Door UNLOCKED via both Camera and App Button");
               Firebase.RTDB.getInt(&fbdo, "/camera");
               intCamera = fbdo.intData();
