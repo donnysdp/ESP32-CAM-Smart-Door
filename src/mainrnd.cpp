@@ -70,7 +70,6 @@ const char* password = "RTYUIOP999";
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
 
-bool takeNewPhoto = true;
 //Define Firebase Data objects
 FirebaseData fbdo;
 FirebaseAuth auth;
@@ -79,10 +78,11 @@ int intAppButton = 0;
 int intCamera = 0;
 bool signupOK = false;
 bool taskCompleted = false;
+bool takeNewPhoto = true;
 
 void initLCD(void){
   Wire.begin(I2C_SDA, I2C_SCL);
-  I2CLCD.begin(I2C_SDA, I2C_SCL, 100000);
+  I2CLCD.begin(I2C_SDA, I2C_SCL, 100000ul);
   lcd.init();              
   lcd.backlight();
   lcd.clear();
