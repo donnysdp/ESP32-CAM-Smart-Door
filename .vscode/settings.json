@@ -1,4 +1,5 @@
 {
     "C_Cpp.errorSquiggles": "disabled",
-    "sonarlint.pathToCompileCommands": "${workspaceFolder}\\compile_commands.json"
+    "sonarlint.pathToCompileCommands": "${workspaceFolder}\\compile_commands.json",
+    "cmake.sourceDirectory": "C:/Users/HP-CM0075AU/Documents/PlatformIO/Projects/ESP32-CAM Smart Door/lib"
 }

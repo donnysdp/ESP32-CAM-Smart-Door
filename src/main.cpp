@@ -50,7 +50,7 @@ const char* password = "RTYUIOP999";
 #define DATABASE_URL "smart-door-esp32-cam-default-rtdb.asia-southeast1.firebasedatabase.app/" 
 
 // Photo File Name to save in SPIFFS
-#define FILE_PHOTO "/data/photo.jpg"
+#define FILE_PHOTO "/history/photo.jpg"
 
 // OV2640 camera module pins (CAMERA_MODEL_AI_THINKER)
 #define PWDN_GPIO_NUM     32
