@@ -1,50 +1,38 @@
-#include <Wire.h>
-#include <WiFi.h>
-#include <esp_camera.h>
-#include <Arduino.h>
-#include <soc/soc.h>           // Disable brownout problems
-#include <soc/rtc_cntl_reg.h>  // Disable brownout problems
-#include <driver/rtc_io.h>
-#include <SPIFFS.h>
-#include <FS.h>
-#include <Firebase_ESP_Client.h>
-#include <LiquidCrystal_I2C.h>
-//Provide the token generation process info.
-#include <addons/TokenHelper.h>
+#include <Wire.h>                 //library Wire (untuk komunikasi wire/pin ESP32-CAM)
+#include <WiFi.h>                 //library WiFi (untuk penggunaan WiFi dari ESP32 SoC)
+#include <esp_camera.h>           //library ESP32-CAM Camera (untuk fungsi yang ada pada ESP32-CAM)
+#include <Arduino.h>              //library Arduino (untuk framework Arduino)
+#include <soc/soc.h>              //Disable brownout problems (untuk brownout problems diawal ESP32-CAM dinyalakan)
+#include <soc/rtc_cntl_reg.h>     //Disable brownout problems (untuk brownout problems diawal ESP32-CAM dinyalakan)
+#include <driver/rtc_io.h>        //library untuk RTC pin pada ESP32-CAM (penggunaan internal pin ESP32-CAM)
+#include <SPIFFS.h>               //library Flash Memory ESP32-CAM
+#include <FS.h>                   //library File System (untuk melakukan rwx (read, write, execute) pada SPIFFS)
+#include <Firebase_ESP_Client.h>  //library Google Firebase
+#include <LiquidCrystal_I2C.h>    //library LCD I2C
+#include <addons/TokenHelper.h>   //Provide the token generation process info for Google Firebase (network-maintaining)
 
-//distance sensor initialize
-#define distanceSensor 13
-int distanceSensorState = HIGH;
-//relay module initialize
-#define relay 2
+#define distanceSensor 13         //Inisialisasi distance sensor di pin 13
+int distanceSensorState = HIGH;   //Inisialisasi default status untuk distance sensor = HIGH (tidak mendeteksi objek)
+#define relay 2                   //Inisialisasi relay di pin 2
 
 //LCD I2C pin config
-#define I2C_SDA 14
-#define I2C_SCL 15
-TwoWire I2CLCD = TwoWire(0);
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+#define I2C_SDA 14                  //set pin SDA di pin 14
+#define I2C_SCL 15                  //set pin SCL di pin 15
+TwoWire I2CLCD = TwoWire(0);        //menjadikan 2 pin (14 dan 15) sebagai jalur komunikasi I2C pada bus 0
+LiquidCrystal_I2C lcd(0x27, 16, 2); //insialisasi LCD I2C pada alamat 0x27 dengan ukuran 16x2
 
-//Replace with your network credentials
-const char* ssid = "SmartIN";
-const char* password = "smartdoor";
+const char* ssid = "SmartIN";         //ssid name (nama wifi)
+const char* password = "smartdoor";   //ssid pass (password wifi)
 
-// Insert Firebase project API Key
-#define API_KEY "AIzaSyDtLZOtHS-s2iyWZmjnxB4WMHqEOcHCayo"
+#define API_KEY "AIzaSyDtLZOtHS-s2iyWZmjnxB4WMHqEOcHCayo" //Insert Firebase project API Key
+#define USER_EMAIL "smartdoor@gmail.com"    //Insert Authorized Email and Corresponding Password
+#define USER_PASSWORD "smartdoor"           //Insert Authorized Email and Corresponding Password
+#define STORAGE_BUCKET_ID "smart-door-esp32-cam.appspot.com" //Insert Firebase storage bucket ID
+#define DATABASE_URL "smart-door-esp32-cam-default-rtdb.asia-southeast1.firebasedatabase.app/"  //Insert RTDB API key
 
-// Insert Authorized Email and Corresponding Password
-#define USER_EMAIL "smartdoor@gmail.com"
-#define USER_PASSWORD "smartdoor"
+#define FILE_PHOTO "/photo.jpg" //Photo File Name to save in SPIFFS and Google Firebase
 
-// Insert Firebase storage bucket ID e.g bucket-name.appspot.com
-#define STORAGE_BUCKET_ID "smart-door-esp32-cam.appspot.com"
-
-// Insert RTDB URLefine the RTDB URL */
-#define DATABASE_URL "smart-door-esp32-cam-default-rtdb.asia-southeast1.firebasedatabase.app/" 
-
-// Photo File Name to save in SPIFFS
-#define FILE_PHOTO "/photo.jpg"
-
-// OV2640 camera module pins (CAMERA_MODEL_AI_THINKER)
+//OV2640 camera module pins (CAMERA_MODEL_AI_THINKER)
 #define PWDN_GPIO_NUM     32
 #define RESET_GPIO_NUM    -1
 #define XCLK_GPIO_NUM      0
