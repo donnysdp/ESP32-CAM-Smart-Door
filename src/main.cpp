@@ -25,16 +25,8 @@ TwoWire I2CLCD = TwoWire(0);
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 //Replace with your network credentials
-const char* ssid = "CEMARA-HOTSPOT";
-const char* password = "RTYUIOP999";
-
-// //Replace with your network credentials
-// const char* ssid = "CEMARA-AP";
-// const char* password = "RTYUIOP999";
-
-// //Replace with your network credentials
-// const char* ssid = "FMC IndiHome ZTE - A";
-// const char* password = "wireless";
+const char* ssid = "SmartIN";
+const char* password = "smartdoor";
 
 // Insert Firebase project API Key
 #define API_KEY "AIzaSyDtLZOtHS-s2iyWZmjnxB4WMHqEOcHCayo"
@@ -50,7 +42,7 @@ const char* password = "RTYUIOP999";
 #define DATABASE_URL "smart-door-esp32-cam-default-rtdb.asia-southeast1.firebasedatabase.app/" 
 
 // Photo File Name to save in SPIFFS
-#define FILE_PHOTO "/history/photo.jpg"
+#define FILE_PHOTO "/photo.jpg"
 
 // OV2640 camera module pins (CAMERA_MODEL_AI_THINKER)
 #define PWDN_GPIO_NUM     32
@@ -257,6 +249,7 @@ void setup(){
     WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
     initCamera();
     pinMode(relay, OUTPUT);
+    digitalWrite(relay, HIGH);
     pinMode(distanceSensor,INPUT);
     //Firebase
     // Assign the api key
@@ -276,7 +269,6 @@ void setup(){
     }
     //Assign the callback function for the long running token generation task
     configF.token_status_callback = tokenStatusCallback; //see addons/TokenHelper.h
-
     Firebase.begin(&configF, &auth);
     Firebase.reconnectWiFi(true);
 }
@@ -295,7 +287,7 @@ void loop(){
                 lcd.print(" No Interaction ");
                 lcd.setCursor(0,1);
                 lcd.print("  Door: LOCKED  ");
-                Serial.println("No Interaction (Door LOCKED) HIGH");
+                Serial.println("No Interaction (Door LOCKED) No Human (HIGH)");
                 Serial.println(distanceSensorState);
                 distanceSensorState = digitalRead(distanceSensor);
                 Firebase.RTDB.getInt(&fbdo, "/appbutton");
@@ -317,7 +309,7 @@ void loop(){
                 Firebase.RTDB.getInt(&fbdo, "/appbutton");
                 intAppButton = fbdo.intData();
                 Firebase.RTDB.setInt(&fbdo, "/appbutton", intAppButton=0);
-                delay(5000);
+                delay(7000);
                 digitalWrite(relay, HIGH);
             }
             else if(distanceSensorState == LOW){
@@ -330,10 +322,10 @@ void loop(){
 
 
     else if(distanceSensorState == LOW){
+        distanceSensorStateWhenLOW:
         takeNewPhoto = true;
         taskCompleted = false;
-        distanceSensorStateWhenLOW:
-        delay(1);
+        delay(100);
         do{
             if(takeNewPhoto){
                 capturePhotoSaveSpiffs();
@@ -349,7 +341,7 @@ void loop(){
                 Serial.println("Error: failed to capture photo and save to SPIFFS --> " + fbdo.errorReason() + " --> Restarting ESP32-CAM");
                 ESP.restart();
             }
-            delay(1);
+            delay(100);
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////
             if(Firebase.ready() && signupOK && !taskCompleted){
                 taskCompleted = true;
@@ -374,7 +366,23 @@ void loop(){
                     takeNewPhoto = false;
                     bool cameraAlgorithm = true;
                     do{
-                        if(intCamera == 2 && distanceSensorState == LOW){  //decision making if camera failed to recognize face
+                        if(intCamera == 0 && distanceSensorState == LOW){ //idle
+                            digitalWrite(relay, HIGH);
+                            lcd.backlight();
+                            lcd.clear();
+                            lcd.setCursor(0,0);
+                            lcd.print(" No Interaction ");
+                            lcd.setCursor(0,1);
+                            lcd.print("  Door: LOCKED  ");
+                            Serial.println("No Interaction (Door LOCKED) Human Detected (LOW)");
+                            Serial.println(distanceSensorState);
+                            distanceSensorState = digitalRead(distanceSensor);
+                            Firebase.RTDB.getInt(&fbdo, "/camera");
+                            intCamera = fbdo.intData();
+                            takeNewPhoto = false;
+                            delay(100);
+                        }
+                        else if(intCamera == 2 && distanceSensorState == LOW){  //decision making if camera failed to recognize face
                             if(intCamera == 1 && distanceSensorState == LOW){
                                 digitalWrite(relay, LOW);
                                 lcd.backlight();
@@ -384,11 +392,12 @@ void loop(){
                                 lcd.setCursor(0,1);
                                 lcd.print("Face Recognition");
                                 Serial.println("The intCamera value = " + String(intCamera) + " --> Retake Result: Face Approved! (Door UNLOCKED)");
-                                delay(5000);
+                                delay(7000);
                                 distanceSensorState = digitalRead(distanceSensor);
                                 Firebase.RTDB.setInt(&fbdo, "/camera", intCamera = 0);
                                 digitalWrite(relay, HIGH);
                                 takeNewPhoto = false;
+                                delay(100);
                             }
                             digitalWrite(relay, HIGH);
                             lcd.backlight();
@@ -404,6 +413,7 @@ void loop(){
                             taskCompleted = false;
                             takeNewPhoto = true;
                             cameraAlgorithm = false;
+                            delay(100);
                         }
                         else if(intCamera == 1 && distanceSensorState == LOW){ //decision making if intCamera value = 1
                             digitalWrite(relay, LOW); //current flowing
@@ -420,25 +430,10 @@ void loop(){
                             Firebase.RTDB.getInt(&fbdo, "/camera");
                             intCamera = fbdo.intData();
                             Firebase.RTDB.setInt(&fbdo, "/camera", intCamera=0);
-                            delay(5000);
+                            delay(7000);
                             digitalWrite(relay, HIGH);
                             takeNewPhoto = false;
-                        }
-                        else if(intCamera == 0 && distanceSensorState == LOW){  //idle
-                            digitalWrite(relay, HIGH);
-                            lcd.backlight();
-                            lcd.clear();
-                            lcd.setCursor(0,0);
-                            lcd.print(" No Interaction ");
-                            lcd.setCursor(0,1);
-                            lcd.print("  Door: LOCKED  ");
-                            Serial.println("No Interaction (Door LOCKED) LOW");
-                            Serial.println(distanceSensorState);
-                            distanceSensorState = digitalRead(distanceSensor);
-                            Firebase.RTDB.getInt(&fbdo, "/camera");
-                            intCamera = fbdo.intData();
-                            takeNewPhoto = false;
-                            delay(1);
+                            delay(100);
                         }
                         else if(distanceSensorState == HIGH){
                             goto distanceSensorStateWhenHIGH;
